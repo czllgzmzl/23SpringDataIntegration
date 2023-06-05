@@ -1,6 +1,10 @@
+import it.unimi.dsi.fastutil.doubles.Double2IntOpenHashMap;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleOpenHashSet;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongIntPair;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
@@ -93,6 +97,9 @@ public class MainForSimilarity {
             for (double value : timeseriesData.get(series))
                 sketch.update(dataToLong(value));
             timeseriesSketch.add(sketch);
+            if(series==0){
+                System.out.println("[Sketch Relative Size] |Sketch|/|data|:\t" + 1.0*sketch.getNumLen()/50000);
+            }
         }
     }
 
@@ -131,30 +138,52 @@ public class MainForSimilarity {
     }
 
     public void computeSetExtJaccardBySketch() {
+        Long2IntOpenHashMap dataCountA=new Long2IntOpenHashMap(),dataCountB=new Long2IntOpenHashMap();
+        LongOpenHashSet dataAB = new LongOpenHashSet();
         for (int seriesA = 0; seriesA < timeseriesData.size(); seriesA++)
             for (int seriesB = 0; seriesB < timeseriesData.size(); seriesB++) /*if(seriesA!=seriesB)*/ {
+//                KLLSketchLazyExactPriori sketchA = timeseriesSketch.get(seriesA), sketchB = timeseriesSketch.get(seriesB);
+//                long[] numA = sketchA.getNum(),numB= sketchB.getNum();
+//                int[] lpA=sketchA.getLevelPos(),lpB=sketchB.getLevelPos();
+//                ObjectArrayList<LongIntPair> itemA = new ObjectArrayList<>(),itemB = new ObjectArrayList<>(), itemUnion = new ObjectArrayList<>(), itemInter = new ObjectArrayList<>();
+//                for(int lv=0;lv<sketchA.getCntLevel();lv++)for(int i=lpA[lv];i<lpA[lv+1];i++)itemA.add(LongIntPair.of(numA[i],1<<lv));
+//                for(int lv=0;lv<sketchB.getCntLevel();lv++)for(int i=lpB[lv];i<lpB[lv+1];i++)itemB.add(LongIntPair.of(numB[i],1<<lv));
+//                itemA.sort(Comparator.comparingLong(LongIntPair::firstLong));
+//                itemB.sort(Comparator.comparingLong(LongIntPair::firstLong));
+//                ObjectArrayList<LongIntPair> itemAB = new ObjectArrayList<>();
+//                itemAB.addAll(itemA);
+//                itemAB.addAll(itemB);
+//                itemAB.sort(Comparator.comparingLong(LongIntPair::firstLong));
+//                int extUnion = 0, extInter=0,posA=0,posB=0;
+//                for(int i=0;i<itemAB.size();i++)if(i==0||itemAB.get(i).firstLong()!=itemAB.get(i-1).firstLong()){
+//                    long cntV = itemAB.get(i).firstLong();
+//                    int extA =0,extB=0;
+//                    while(posA<itemA.size()&&itemA.get(posA).firstLong()==cntV)extA+=itemA.get(posA++).secondInt();
+//                    while(posB<itemB.size()&&itemB.get(posB).firstLong()==cntV)extB+=itemB.get(posB++).secondInt();
+//                    extUnion+=Math.max(extA,extB);
+//                    extInter+=Math.min(extA,extB);
+//                }
+//                timeseriesExtJaccardKLL[seriesA][seriesB] = 1.0*extInter/extUnion;
+
+                dataCountA.clear();dataCountB.clear();dataAB.clear();
                 KLLSketchLazyExactPriori sketchA = timeseriesSketch.get(seriesA), sketchB = timeseriesSketch.get(seriesB);
                 long[] numA = sketchA.getNum(),numB= sketchB.getNum();
                 int[] lpA=sketchA.getLevelPos(),lpB=sketchB.getLevelPos();
-                ObjectArrayList<LongIntPair> itemA = new ObjectArrayList<>(),itemB = new ObjectArrayList<>(), itemUnion = new ObjectArrayList<>(), itemInter = new ObjectArrayList<>();
-                for(int lv=0;lv<sketchA.getCntLevel();lv++)for(int i=lpA[lv];i<lpA[lv+1];i++)itemA.add(LongIntPair.of(numA[i],1<<lv));
-                for(int lv=0;lv<sketchB.getCntLevel();lv++)for(int i=lpB[lv];i<lpB[lv+1];i++)itemB.add(LongIntPair.of(numB[i],1<<lv));
-                itemA.sort(Comparator.comparingLong(LongIntPair::firstLong));
-                itemB.sort(Comparator.comparingLong(LongIntPair::firstLong));
-                ObjectArrayList<LongIntPair> itemAB = new ObjectArrayList<>();
-                itemAB.addAll(itemA);
-                itemAB.addAll(itemB);
-                itemAB.sort(Comparator.comparingLong(LongIntPair::firstLong));
-                int extUnion = 0, extInter=0,posA=0,posB=0;
-                for(int i=0;i<itemAB.size();i++)if(i==0||itemAB.get(i).firstLong()!=itemAB.get(i-1).firstLong()){
-                    long cntV = itemAB.get(i).firstLong();
-                    int extA =0,extB=0;
-                    while(posA<itemA.size()&&itemA.get(posA).firstLong()==cntV)extA+=itemA.get(posA++).secondInt();
-                    while(posB<itemB.size()&&itemB.get(posB).firstLong()==cntV)extB+=itemB.get(posB++).secondInt();
-                    extUnion+=Math.max(extA,extB);
-                    extInter+=Math.min(extA,extB);
+                for(int lv=0;lv<sketchA.getCntLevel();lv++)for(int i=lpA[lv];i<lpA[lv+1];i++) {
+                    dataCountA.put(numA[i],dataCountA.getOrDefault(numA[i],0)+(1 << lv));
+                    dataAB.add(numA[i]);
                 }
-                timeseriesExtJaccardKLL[seriesA][seriesB] = 1.0*extInter/extUnion;
+                for(int lv=0;lv<sketchB.getCntLevel();lv++)for(int i=lpB[lv];i<lpB[lv+1];i++){
+                    dataCountB.put(numB[i],dataCountB.getOrDefault(numB[i],0)+(1 << lv));
+                    dataAB.add(numB[i]);
+                }
+                int extUnion = 0, extInter = 0;
+                for(long val:dataAB){
+                    int extA = dataCountA.getOrDefault(val,0), extB = dataCountB.getOrDefault(val,0);
+                    extUnion += Math.max(extA, extB);
+                    extInter += Math.min(extA, extB);
+                }
+                timeseriesExtJaccardKLL[seriesA][seriesB] = 1.0 * extInter / extUnion;
             }
     }
 
@@ -185,27 +214,47 @@ public class MainForSimilarity {
 
 
     public void computeSetExtJaccardByData() {
+        Double2IntOpenHashMap dataCountA=new Double2IntOpenHashMap(),dataCountB=new Double2IntOpenHashMap();
+        DoubleOpenHashSet dataAB = new DoubleOpenHashSet();
         for (int seriesA = 0; seriesA < timeseriesData.size(); seriesA++)
             for (int seriesB = 0; seriesB < timeseriesData.size(); seriesB++) /*if(seriesA!=seriesB)*/ {
-//                DoubleArrayList dataSortedA = timeseriesDataSorted.get(seriesA), dataSortedB = timeseriesDataSorted.get(seriesB);
-                DoubleArrayList dataSortedA = new DoubleArrayList(timeseriesData.get(seriesA)), dataSortedB = new DoubleArrayList(timeseriesData.get(seriesB));
-                dataSortedA.sort(Double::compare);
-                dataSortedB.sort(Double::compare);
+////                DoubleArrayList dataSortedA = timeseriesDataSorted.get(seriesA), dataSortedB = timeseriesDataSorted.get(seriesB);
+//                DoubleArrayList dataSortedA = new DoubleArrayList(timeseriesData.get(seriesA)), dataSortedB = new DoubleArrayList(timeseriesData.get(seriesB));
+//                dataSortedA.sort(Double::compare);
+//                dataSortedB.sort(Double::compare);
+//
+//                DoubleArrayList dataSortedAB = new DoubleArrayList();
+//                for (int pA = 0, pB = 0; pA < dataSortedA.size() || pB < dataSortedB.size(); )
+//                    dataSortedAB.add((pB == dataSortedB.size() || (pA < dataSortedA.size() && dataSortedA.getDouble(pA) <= dataSortedB.getDouble(pB))) ? dataSortedA.getDouble(pA++) : dataSortedB.getDouble(pB++));
+//
+//                int extUnion = 0, extInter = 0, posA = 0, posB = 0;
+//                for (int i = 0; i < dataSortedAB.size(); i++)
+//                    if (i == 0 || dataSortedAB.getDouble(i) != dataSortedAB.getDouble(i - 1)) {
+//                        double cntV = dataSortedAB.getDouble(i);
+//                        int extA = 0, extB = 0;
+//                        while (posA < dataSortedA.size() && dataSortedA.getDouble(posA) == cntV) {extA++;posA++;}
+//                        while (posB < dataSortedB.size() && dataSortedB.getDouble(posB) == cntV) {extB++;posB++;}
+//                        extUnion += Math.max(extA, extB);
+//                        extInter += Math.min(extA, extB);
+//                    }
+//                timeseriesExtJaccardData[seriesA][seriesB] = 1.0 * extInter / extUnion;
+                DoubleArrayList dataA = timeseriesData.get(seriesA),dataB = timeseriesData.get(seriesB);
+                dataCountA.clear();dataCountB.clear();dataAB.clear();
 
-                DoubleArrayList dataSortedAB = new DoubleArrayList();
-                for (int pA = 0, pB = 0; pA < dataSortedA.size() || pB < dataSortedB.size(); )
-                    dataSortedAB.add((pB == dataSortedB.size() || (pA < dataSortedA.size() && dataSortedA.getDouble(pA) <= dataSortedB.getDouble(pB))) ? dataSortedA.getDouble(pA++) : dataSortedB.getDouble(pB++));
-
-                int extUnion = 0, extInter = 0, posA = 0, posB = 0;
-                for (int i = 0; i < dataSortedAB.size(); i++)
-                    if (i == 0 || dataSortedAB.getDouble(i) != dataSortedAB.getDouble(i - 1)) {
-                        double cntV = dataSortedAB.getDouble(i);
-                        int extA = 0, extB = 0;
-                        while (posA < dataSortedA.size() && dataSortedA.getDouble(posA) == cntV) {extA++;posA++;}
-                        while (posB < dataSortedB.size() && dataSortedB.getDouble(posB) == cntV) {extB++;posB++;}
-                        extUnion += Math.max(extA, extB);
-                        extInter += Math.min(extA, extB);
-                    }
+                for(double val:dataA){
+                    dataCountA.put(val,dataCountA.getOrDefault(val,0)+1);
+                    dataAB.add(val);
+                }
+                for(double val:dataB){
+                    dataCountB.put(val,dataCountB.getOrDefault(val,0)+1);
+                    dataAB.add(val);
+                }
+                int extUnion = 0, extInter = 0;
+                for(double val:dataAB){
+                    int extA = dataCountA.getOrDefault(val,0), extB = dataCountB.getOrDefault(val,0);
+                    extUnion += Math.max(extA, extB);
+                    extInter += Math.min(extA, extB);
+                }
                 timeseriesExtJaccardData[seriesA][seriesB] = 1.0 * extInter / extUnion;
             }
     }
@@ -265,17 +314,23 @@ public class MainForSimilarity {
         main.prepareA("./dataset");
         main.prepareSketch();
 
+
+        main.computeDisSimBySketch();//drop
         long TIME_DIFF_SKETCH = -new Date().getTime();
         main.computeDisSimBySketch();
         TIME_DIFF_SKETCH+=new Date().getTime();
 
+        main.computeSetExtJaccardBySketch();//drop
         long TIME_JACCARD_SKETCH = -new Date().getTime();
         main.computeSetExtJaccardBySketch();
         TIME_JACCARD_SKETCH+=new Date().getTime();
 
+        main.computeDisSimByData();//drop
         long TIME_DIFF_DATA = -new Date().getTime();
         main.computeDisSimByData();
         TIME_DIFF_DATA+=new Date().getTime();
+
+        main.computeSetExtJaccardByData();//drop
         long TIME_JACCARD_DATA = -new Date().getTime();
         main.computeSetExtJaccardByData();
         TIME_JACCARD_DATA+=new Date().getTime();
