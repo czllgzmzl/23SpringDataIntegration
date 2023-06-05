@@ -41,4 +41,6 @@ if __name__ == '__main__':
     cb=plt.colorbar(pcm)
     cb.set_ticks([0,0.5])
     cb.update_ticks()
+    plt.title("Quantile + Data")
+    plt.savefig("diff-data.eps")
     plt.show()

@@ -11,7 +11,7 @@ if __name__ == '__main__':
     Diff=np.zeros((SeriesNum, SeriesNum))
     print(Diff)
 
-    with open('KLL-Diff.txt', encoding='utf-8') as file_obj:
+    with open('Data-Jac.txt', encoding='utf-8') as file_obj:
         contents = file_obj.read()
         # lines=contents.splitlines()
         mId=0
@@ -21,7 +21,7 @@ if __name__ == '__main__':
             nId=0
             for value in values:
                 value=float(value)
-                Diff[mId, nId]=value
+                Diff[mId, nId]=1-value
                 nId+=1
             mId+=1
     print(Diff)
@@ -41,6 +41,6 @@ if __name__ == '__main__':
     cb=plt.colorbar(pcm)
     cb.set_ticks([0,0.5])
     cb.update_ticks()
-    plt.title("Quantile + KLL")
-    plt.savefig("diff-kll.eps")
+    plt.title("Jaccard + Data")
+    plt.savefig("jac-data.eps")
     plt.show()
